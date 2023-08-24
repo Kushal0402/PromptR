@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 import PromptCard from "./PromptCard";
 
@@ -19,8 +19,11 @@ const PromptCardList = ({ data, handleTagClick }) => {
 };
 const Feed = () => {
   const [searchText, setSearchText] = useState("");
+  const [posts, setPosts] = useState([]);
+  const [filteredPosts, setFilteredPosts] = useState([]);
+  const isInitialMount = useRef(true);
 
-  const handleSearchChange = (e) => {
+  const handleSearchChange = async (e) => {
     setSearchText(e.target.value);
   };
 
@@ -28,33 +31,31 @@ const Feed = () => {
     setSearchText(tag);
   };
 
-  const [posts, setPosts] = useState([]);
-  const [filteredPosts, setFilteredPosts] = useState([]);
-
-
   useEffect(() => {
     const fetchPosts = async () => {
       const response = await fetch("/api/prompt");
       const data = await response.json();
       setPosts(data);
+      setFilteredPosts(data);
     };
     fetchPosts();
   }, []);
 
   useEffect(() => {
-    if (posts.length !== 0) {
-      setFilteredPosts(posts);
-      const filteredData = posts.filter(
-        (post) =>
-          post.prompt.toLowerCase().includes(searchText.toLowerCase()) ||
-          post.tag.toLowerCase().includes(searchText.toLowerCase())
-      );
-      setFilteredPosts(filteredData);
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+    } else {
+      if (posts.length !== 0) {
+        const filteredData = posts.filter(
+          (post) =>
+            post.prompt.toLowerCase().includes(searchText.toLowerCase()) ||
+            post.tag.toLowerCase().includes(searchText.toLowerCase())
+        );
+        setFilteredPosts(filteredData);
+      }
     }
   }, [searchText]);
 
-
-  console.log(filteredPosts);
   return (
     <section className="feed">
       <form className="relative w-full flex-center">
@@ -68,7 +69,10 @@ const Feed = () => {
         ></input>
       </form>
 
-      <PromptCardList data={filteredPosts} handleTagClick={(e) => handleTagClick(e)} />
+      <PromptCardList
+        data={filteredPosts}
+        handleTagClick={(e) => handleTagClick(e)}
+      />
     </section>
   );
 };
